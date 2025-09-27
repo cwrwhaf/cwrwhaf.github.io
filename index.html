@@ -104,9 +104,12 @@
             const scaleY = canvas.height / rect.height;
             
             let x, y;
-            if (e.touches) {
+            if (e.touches && e.touches.length > 0) {
                 x = (e.touches[0].clientX - rect.left) * scaleX;
                 y = (e.touches[0].clientY - rect.top) * scaleY;
+            } else if (e.changedTouches && e.changedTouches.length > 0) {
+                x = (e.changedTouches[0].clientX - rect.left) * scaleX;
+                y = (e.changedTouches[0].clientY - rect.top) * scaleY;
             } else {
                 x = (e.clientX - rect.left) * scaleX;
                 y = (e.clientY - rect.top) * scaleY;
@@ -160,7 +163,7 @@
         function getClickedSide(x, y) {
             if (!currentSquare) return null;
             
-            const tolerance = 40; // 40 pixels tolerance for mobile touch
+            const tolerance = 60; // Increased to 60 pixels tolerance for mobile touch
             const sq = currentSquare;
             
             // Use actual side lengths for accurate detection
@@ -169,24 +172,32 @@
             const leftLength = sq.sideLengths.left;
             const rightLength = sq.sideLengths.right;
             
+            console.log('Checking click at:', x, y, 'Square at:', sq.x, sq.y); // Debug log
+            console.log('Side lengths:', topLength, rightLength, bottomLength, leftLength); // Debug log
+            
             // Check which side was clicked with extended boundaries
             // Top side - check if close to top edge
             if (Math.abs(y - sq.y) <= tolerance && x >= sq.x - tolerance && x <= sq.x + topLength + tolerance) {
+                console.log('Top side detected'); // Debug log
                 return 'top';
             }
             // Bottom side - check if close to bottom edge
             else if (Math.abs(y - (sq.y + leftLength)) <= tolerance && x >= sq.x - tolerance && x <= sq.x + bottomLength + tolerance) {
+                console.log('Bottom side detected'); // Debug log
                 return 'bottom';
             }
             // Left side - check if close to left edge
             else if (Math.abs(x - sq.x) <= tolerance && y >= sq.y - tolerance && y <= sq.y + leftLength + tolerance) {
+                console.log('Left side detected'); // Debug log
                 return 'left';
             }
             // Right side - check if close to right edge
             else if (Math.abs(x - (sq.x + topLength)) <= tolerance && y >= sq.y - tolerance && y <= sq.y + rightLength + tolerance) {
+                console.log('Right side detected'); // Debug log
                 return 'right';
             }
             
+            console.log('No side detected'); // Debug log
             return null;
         }
 
@@ -316,18 +327,27 @@
             
             if (isDrawing) {
                 stopDrawing(e);
-            } else {
-                // Handle touch as a click for line selection
+                return;
+            }
+            
+            // Only handle touch as click if no drawing happened
+            setTimeout(() => {
                 const coords = getCoordinates(e);
+                console.log('Touch coordinates:', coords); // Debug log
                 
                 // Check if touching on existing square
                 if (currentSquare) {
+                    console.log('Current square exists:', currentSquare); // Debug log
+                    
                     // Don't do anything if touching inside the shape
                     if (isInsideShape(coords.x, coords.y)) {
+                        console.log('Touch inside shape, ignoring'); // Debug log
                         return;
                     }
                     
                     const clickedSide = getClickedSide(coords.x, coords.y);
+                    console.log('Clicked side:', clickedSide); // Debug log
+                    
                     if (clickedSide) {
                         // Get current length of the clicked side
                         const currentLengthMeters = (currentSquare.sideLengths[clickedSide] / 100).toFixed(2);
@@ -337,7 +357,7 @@
                         }
                     }
                 }
-            }
+            }, 100); // Small delay to ensure drawing state is finalized
         }
 
         function snapToSquare() {
