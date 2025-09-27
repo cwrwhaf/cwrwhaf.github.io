@@ -90,7 +90,7 @@
         // Touch events for mobile
         canvas.addEventListener('touchstart', handleStart);
         canvas.addEventListener('touchmove', draw);
-        canvas.addEventListener('touchend', stopDrawing);
+        canvas.addEventListener('touchend', handleTouchEnd);
 
         // Mouse events for desktop
         canvas.addEventListener('mousedown', handleStart);
@@ -140,6 +140,11 @@
             
             // Check if clicking on existing square
             if (currentSquare) {
+                // Don't do anything if clicking inside the shape
+                if (isInsideShape(coords.x, coords.y)) {
+                    return;
+                }
+                
                 const clickedSide = getClickedSide(coords.x, coords.y);
                 if (clickedSide) {
                     // Get current length of the clicked side
@@ -155,7 +160,7 @@
         function getClickedSide(x, y) {
             if (!currentSquare) return null;
             
-            const tolerance = 25; // 25 pixels tolerance for finger-friendly clicking
+            const tolerance = 40; // 40 pixels tolerance for mobile touch
             const sq = currentSquare;
             
             // Use actual side lengths for accurate detection
@@ -165,24 +170,36 @@
             const rightLength = sq.sideLengths.right;
             
             // Check which side was clicked with extended boundaries
-            // Top side
-            if (Math.abs(y - sq.y) < tolerance && x >= sq.x - tolerance && x <= sq.x + topLength + tolerance) {
+            // Top side - check if close to top edge
+            if (Math.abs(y - sq.y) <= tolerance && x >= sq.x - tolerance && x <= sq.x + topLength + tolerance) {
                 return 'top';
             }
-            // Bottom side
-            else if (Math.abs(y - (sq.y + leftLength)) < tolerance && x >= sq.x - tolerance && x <= sq.x + bottomLength + tolerance) {
+            // Bottom side - check if close to bottom edge
+            else if (Math.abs(y - (sq.y + leftLength)) <= tolerance && x >= sq.x - tolerance && x <= sq.x + bottomLength + tolerance) {
                 return 'bottom';
             }
-            // Left side
-            else if (Math.abs(x - sq.x) < tolerance && y >= sq.y - tolerance && y <= sq.y + leftLength + tolerance) {
+            // Left side - check if close to left edge
+            else if (Math.abs(x - sq.x) <= tolerance && y >= sq.y - tolerance && y <= sq.y + leftLength + tolerance) {
                 return 'left';
             }
-            // Right side
-            else if (Math.abs(x - (sq.x + topLength)) < tolerance && y >= sq.y - tolerance && y <= sq.y + rightLength + tolerance) {
+            // Right side - check if close to right edge
+            else if (Math.abs(x - (sq.x + topLength)) <= tolerance && y >= sq.y - tolerance && y <= sq.y + rightLength + tolerance) {
                 return 'right';
             }
             
             return null;
+        }
+
+        function isInsideShape(x, y) {
+            if (!currentSquare) return false;
+            
+            const sq = currentSquare;
+            const buffer = 20; // Small buffer inside the shape
+            
+            return (x > sq.x + buffer && 
+                    x < sq.x + sq.sideLengths.top - buffer &&
+                    y > sq.y + buffer && 
+                    y < sq.y + sq.sideLengths.left - buffer);
         }
 
         function adjustSquareSide(side, actualMeters) {
@@ -292,6 +309,35 @@
             
             // Analyze the drawn shape and snap to square
             snapToSquare();
+        }
+
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            
+            if (isDrawing) {
+                stopDrawing(e);
+            } else {
+                // Handle touch as a click for line selection
+                const coords = getCoordinates(e);
+                
+                // Check if touching on existing square
+                if (currentSquare) {
+                    // Don't do anything if touching inside the shape
+                    if (isInsideShape(coords.x, coords.y)) {
+                        return;
+                    }
+                    
+                    const clickedSide = getClickedSide(coords.x, coords.y);
+                    if (clickedSide) {
+                        // Get current length of the clicked side
+                        const currentLengthMeters = (currentSquare.sideLengths[clickedSide] / 100).toFixed(2);
+                        const actualLength = prompt(`Enter the actual length of the ${clickedSide} side in meters:`, currentLengthMeters);
+                        if (actualLength !== null && !isNaN(actualLength) && parseFloat(actualLength) > 0) {
+                            adjustSquareSide(clickedSide, parseFloat(actualLength));
+                        }
+                    }
+                }
+            }
         }
 
         function snapToSquare() {
