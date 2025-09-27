@@ -155,17 +155,30 @@
         function getClickedSide(x, y) {
             if (!currentSquare) return null;
             
-            const tolerance = 10; // 10 pixels tolerance for clicking on lines
+            const tolerance = 25; // 25 pixels tolerance for finger-friendly clicking
             const sq = currentSquare;
             
-            // Check which side was clicked
-            if (Math.abs(y - sq.y) < tolerance && x >= sq.x - tolerance && x <= sq.x + sq.width + tolerance) {
+            // Use actual side lengths for accurate detection
+            const topLength = sq.sideLengths.top;
+            const bottomLength = sq.sideLengths.bottom;
+            const leftLength = sq.sideLengths.left;
+            const rightLength = sq.sideLengths.right;
+            
+            // Check which side was clicked with extended boundaries
+            // Top side
+            if (Math.abs(y - sq.y) < tolerance && x >= sq.x - tolerance && x <= sq.x + topLength + tolerance) {
                 return 'top';
-            } else if (Math.abs(y - (sq.y + sq.height)) < tolerance && x >= sq.x - tolerance && x <= sq.x + sq.width + tolerance) {
+            }
+            // Bottom side
+            else if (Math.abs(y - (sq.y + leftLength)) < tolerance && x >= sq.x - tolerance && x <= sq.x + bottomLength + tolerance) {
                 return 'bottom';
-            } else if (Math.abs(x - sq.x) < tolerance && y >= sq.y - tolerance && y <= sq.y + sq.height + tolerance) {
+            }
+            // Left side
+            else if (Math.abs(x - sq.x) < tolerance && y >= sq.y - tolerance && y <= sq.y + leftLength + tolerance) {
                 return 'left';
-            } else if (Math.abs(x - (sq.x + sq.width)) < tolerance && y >= sq.y - tolerance && y <= sq.y + sq.height + tolerance) {
+            }
+            // Right side
+            else if (Math.abs(x - (sq.x + topLength)) < tolerance && y >= sq.y - tolerance && y <= sq.y + rightLength + tolerance) {
                 return 'right';
             }
             
@@ -176,8 +189,7 @@
             if (!currentSquare) return;
             
             // Update only the specific side length
-            const newPixelLength = actualMeters * 100;
-            currentSquare.sideLengths[side] = newPixelLength;
+            currentSquare.sideLengths[side] = actualMeters * 100;
             
             // Redraw the shape as a quadrilateral
             redrawShape();
